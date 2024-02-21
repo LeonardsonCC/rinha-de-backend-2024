@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"github.com/LeonardsonCC/rinha-de-backend-2024/internal/api/contracts"
@@ -13,11 +12,11 @@ import (
 func AddTransaction(c context.Context, clientID int, txType rune, v int, d string) (*contracts.TransactionSuccess, error) {
 	db, _ := db.GetConnection()
 
-	tx, _ := db.BeginTx(c, &sql.TxOptions{})
-	defer tx.Rollback()
+	tx, _ := db.Begin(c)
+	defer tx.Rollback(c)
 
 	var limit, balance int
-	clientBefore, err := tx.QueryContext(c, "SELECT limite, saldo FROM clientes WHERE id = $1", clientID)
+	clientBefore, err := tx.Query(c, "SELECT limite, saldo FROM clientes WHERE id = $1", clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -44,17 +43,17 @@ func AddTransaction(c context.Context, clientID int, txType rune, v int, d strin
 	}
 
 	// TODO: make it goroutine
-	_, err = tx.ExecContext(c, "INSERT INTO transacoes(cliente_id, tipo, valor, descricao) VALUES ($1, $2, $3, $4)", clientID, string(txType), v, d)
+	_, err = tx.Exec(c, "INSERT INTO transacoes(cliente_id, tipo, valor, descricao) VALUES ($1, $2, $3, $4)", clientID, string(txType), v, d)
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert tx: %v", err)
 	}
 
-	_, err = tx.ExecContext(c, "UPDATE clientes SET saldo=$1 WHERE id=$2", newBalance, clientID)
+	_, err = tx.Exec(c, "UPDATE clientes SET saldo=$1 WHERE id=$2", newBalance, clientID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update client: %v", err)
 	}
 
-	_ = tx.Commit()
+	_ = tx.Commit(c)
 
 	return &contracts.TransactionSuccess{
 		Limit:   int(limit),

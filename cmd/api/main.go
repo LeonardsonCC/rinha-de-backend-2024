@@ -21,4 +21,6 @@ func main() {
 
 	fmt.Println("listening to: 0.0.0.0:8888")
 	_ = http.ListenAndServe("0.0.0.0:8888", mux)
+
+	db.CloseConnection()
 }

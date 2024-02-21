@@ -7,13 +7,15 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/LeonardsonCC/rinha-de-backend-2024/internal/errs"
 	"github.com/LeonardsonCC/rinha-de-backend-2024/internal/repository"
 )
 
 func HandleGetBalance(w http.ResponseWriter, r *http.Request) {
-	c := context.Background()
+	c, cancel := context.WithTimeout(context.Background(), time.Duration(5*time.Second))
+	defer cancel()
 
 	clientID, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {

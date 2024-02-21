@@ -1,26 +1,28 @@
 package db
 
 import (
-	"database/sql"
+	"context"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/lib/pq"
 )
 
-var db *sql.DB
+var db *pgxpool.Pool
 
-func GetConnection() (*sql.DB, error) {
+func GetConnection() (*pgxpool.Pool, error) {
 	if db == nil {
 		connStr := "host=db port=5432 user=admin password=123 dbname=rinha sslmode=disable"
-		conn, err := sql.Open("postgres", connStr)
+		conn, err := pgxpool.New(context.Background(), connStr)
 		if err != nil {
 			return nil, err
 		}
-
-		conn.SetMaxOpenConns(300)
-		conn.SetMaxIdleConns(300)
 
 		db = conn
 	}
 
 	return db, nil
+}
+
+func CloseConnection() {
+	db.Close()
 }

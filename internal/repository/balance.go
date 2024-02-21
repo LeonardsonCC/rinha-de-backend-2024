@@ -13,7 +13,7 @@ import (
 func GetBalance(c context.Context, clientID int) (*contracts.Balance, error) {
 	db, _ := db.GetConnection()
 
-	rows, err := db.QueryContext(c, "SELECT c.saldo, c.limite FROM clientes c WHERE id = $1", clientID)
+	rows, err := db.Query(c, "SELECT c.saldo, c.limite FROM clientes c WHERE id = $1", clientID)
 	if err != nil {
 		return nil, errs.ErrAccountNotFound
 	}
@@ -30,8 +30,9 @@ func GetBalance(c context.Context, clientID int) (*contracts.Balance, error) {
 	if err != nil {
 		return nil, errs.ErrAccountNotFound
 	}
+	rows.Close()
 
-	txRows, err := db.QueryContext(c, "SELECT t.valor, t.tipo, t.descricao, t.realizada_em FROM transacoes t WHERE cliente_id=$1 ORDER BY realizada_em DESC LIMIT 10", clientID)
+	txRows, err := db.Query(c, "SELECT t.valor, t.tipo, t.descricao, t.realizada_em FROM transacoes t WHERE cliente_id=$1 ORDER BY realizada_em DESC LIMIT 10", clientID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get last transactions: %s", err)
 	}
@@ -41,6 +42,7 @@ func GetBalance(c context.Context, clientID int) (*contracts.Balance, error) {
 		_ = txRows.Scan(&tx.Value, &tx.Type, &tx.Description, &tx.CreatedAt)
 		balance.LastTransactions = append(balance.LastTransactions, tx)
 	}
+	txRows.Close()
 
 	return balance, nil
 }

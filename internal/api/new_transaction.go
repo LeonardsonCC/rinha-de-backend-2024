@@ -35,7 +35,7 @@ func HandleNewTransaction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := validateTx(tt); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 
