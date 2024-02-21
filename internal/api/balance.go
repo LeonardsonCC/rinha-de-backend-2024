@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,13 +13,15 @@ import (
 )
 
 func HandleGetBalance(w http.ResponseWriter, r *http.Request) {
+	c := context.Background()
+
 	clientID, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		http.Error(w, errs.ErrAccountNotFound.Error(), http.StatusNotFound)
 		return
 	}
 
-	balance, err := repository.GetBalance(int64(clientID))
+	balance, err := repository.GetBalance(c, clientID)
 	if err != nil {
 		if errors.Is(err, errs.ErrAccountNotFound) {
 			http.Error(w, err.Error(), http.StatusNotFound)

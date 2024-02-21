@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -9,10 +10,10 @@ import (
 	"github.com/LeonardsonCC/rinha-de-backend-2024/internal/repository/db"
 )
 
-func GetBalance(clientID int64) (*contracts.Balance, error) {
+func GetBalance(c context.Context, clientID int) (*contracts.Balance, error) {
 	db, _ := db.GetConnection()
 
-	rows, err := db.Query("SELECT c.saldo, c.limite FROM clientes c WHERE id = $1", clientID)
+	rows, err := db.QueryContext(c, "SELECT c.saldo, c.limite FROM clientes c WHERE id = $1", clientID)
 	if err != nil {
 		return nil, errs.ErrAccountNotFound
 	}
@@ -30,7 +31,7 @@ func GetBalance(clientID int64) (*contracts.Balance, error) {
 		return nil, errs.ErrAccountNotFound
 	}
 
-	txRows, err := db.Query("SELECT t.valor, t.tipo, t.descricao, t.realizada_em FROM transacoes t WHERE cliente_id=$1 ORDER BY realizada_em DESC LIMIT 10", clientID)
+	txRows, err := db.QueryContext(c, "SELECT t.valor, t.tipo, t.descricao, t.realizada_em FROM transacoes t WHERE cliente_id=$1 ORDER BY realizada_em DESC LIMIT 10", clientID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get last transactions: %s", err)
 	}

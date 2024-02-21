@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,6 +20,8 @@ var (
 )
 
 func HandleNewTransaction(w http.ResponseWriter, r *http.Request) {
+	c := context.Background()
+
 	clientID, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		http.Error(w, errs.ErrAccountNotFound.Error(), http.StatusNotFound)
@@ -33,9 +36,10 @@ func HandleNewTransaction(w http.ResponseWriter, r *http.Request) {
 
 	if err := validateTx(tt); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	tx, err := repository.AddTransaction(uint(clientID), []rune(tt.Type)[0], tt.Value, tt.Description)
+	tx, err := repository.AddTransaction(c, clientID, []rune(tt.Type)[0], tt.Value, tt.Description)
 	if err != nil {
 		if errors.Is(err, errs.ErrInsufficientLimit) {
 			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
