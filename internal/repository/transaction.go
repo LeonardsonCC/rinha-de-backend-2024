@@ -7,6 +7,7 @@ import (
 	"github.com/LeonardsonCC/rinha-de-backend-2024/internal/api/contracts"
 	"github.com/LeonardsonCC/rinha-de-backend-2024/internal/errs"
 	"github.com/LeonardsonCC/rinha-de-backend-2024/internal/repository/db"
+	"github.com/jackc/pgx/v5"
 )
 
 func AddTransaction(c context.Context, clientID int, txType rune, v int, d string) (*contracts.TransactionSuccess, error) {
@@ -16,20 +17,12 @@ func AddTransaction(c context.Context, clientID int, txType rune, v int, d strin
 	defer tx.Rollback(c)
 
 	var limit, balance int
-	clientBefore, err := tx.Query(c, "SELECT limite, saldo FROM clientes WHERE id = $1", clientID)
+	clientBefore := tx.QueryRow(c, "SELECT limite, saldo FROM clientes WHERE id = $1 FOR NO KEY UPDATE", clientID)
+
+	err := clientBefore.Scan(&limit, &balance)
 	if err != nil {
 		return nil, err
 	}
-
-	if !clientBefore.Next() {
-		return nil, errs.ErrAccountNotFound
-	}
-
-	err = clientBefore.Scan(&limit, &balance)
-	if err != nil {
-		return nil, err
-	}
-	clientBefore.Close()
 
 	var newBalance int
 	if txType == 'd' {
@@ -38,19 +31,19 @@ func AddTransaction(c context.Context, clientID int, txType rune, v int, d strin
 		newBalance = balance + v
 	}
 
-	if limit+newBalance < 0 {
+	if newBalance < (limit * -1) {
 		return nil, errs.ErrInsufficientLimit
 	}
 
-	// TODO: make it goroutine
-	_, err = tx.Exec(c, "INSERT INTO transacoes(cliente_id, tipo, valor, descricao) VALUES ($1, $2, $3, $4)", clientID, string(txType), v, d)
-	if err != nil {
-		return nil, fmt.Errorf("failed to insert tx: %v", err)
-	}
+	b := new(pgx.Batch)
 
-	_, err = tx.Exec(c, "UPDATE clientes SET saldo=$1 WHERE id=$2", newBalance, clientID)
+	b.Queue("INSERT INTO transacoes(cliente_id, tipo, valor, descricao) VALUES ($1, $2, $3, $4)", clientID, string(txType), v, d)
+	b.Queue("UPDATE clientes SET saldo=$1 WHERE id=$2", newBalance, clientID)
+
+	bResult := tx.SendBatch(c, b)
+	err = bResult.Close()
 	if err != nil {
-		return nil, fmt.Errorf("failed to update client: %v", err)
+		return nil, fmt.Errorf("failed to insert and update client: %v", err)
 	}
 
 	_ = tx.Commit(c)

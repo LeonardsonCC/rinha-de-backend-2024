@@ -13,10 +13,7 @@ import (
 func GetBalance(c context.Context, clientID int) (*contracts.Balance, error) {
 	db, _ := db.GetConnection()
 
-	rows, err := db.Query(c, "SELECT c.saldo, c.limite FROM clientes c WHERE id = $1", clientID)
-	if err != nil {
-		return nil, errs.ErrAccountNotFound
-	}
+	rows := db.QueryRow(c, "SELECT c.saldo, c.limite FROM clientes c WHERE id = $1", clientID)
 
 	balance := &contracts.Balance{
 		Balance: contracts.BalanceData{
@@ -25,12 +22,10 @@ func GetBalance(c context.Context, clientID int) (*contracts.Balance, error) {
 		LastTransactions: make([]*contracts.Transaction, 0, 10),
 	}
 
-	rows.Next()
-	err = rows.Scan(&balance.Balance.Total, &balance.Balance.Limit)
+	err := rows.Scan(&balance.Balance.Total, &balance.Balance.Limit)
 	if err != nil {
 		return nil, errs.ErrAccountNotFound
 	}
-	rows.Close()
 
 	txRows, err := db.Query(c, "SELECT t.valor, t.tipo, t.descricao, t.realizada_em FROM transacoes t WHERE cliente_id=$1 ORDER BY realizada_em DESC LIMIT 10", clientID)
 	if err != nil {
