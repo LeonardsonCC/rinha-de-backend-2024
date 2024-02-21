@@ -11,11 +11,11 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o ./app ./cmd/api
+RUN GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o ./app ./cmd/api
 
 
 # try use scratch
-FROM alpine:3.19
+FROM scratch
 
 COPY --from=build /src/app /app
 
