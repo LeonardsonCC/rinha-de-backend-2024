@@ -1,38 +1,31 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/LeonardsonCC/rinha-de-backend-2024/internal/errs"
 	"github.com/LeonardsonCC/rinha-de-backend-2024/internal/repository"
+	"github.com/gofiber/fiber/v3"
 )
 
-func HandleGetBalance(w http.ResponseWriter, r *http.Request) {
-	c, cancel := context.WithTimeout(context.Background(), time.Duration(5*time.Second))
-	defer cancel()
-
-	clientID, err := strconv.Atoi(r.PathValue("id"))
+func HandleGetBalance(c fiber.Ctx) error {
+	clientID, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
-		http.Error(w, errs.ErrAccountNotFound.Error(), http.StatusNotFound)
-		return
+		return c.Status(http.StatusNotFound).SendString(errs.ErrAccountNotFound.Error())
 	}
 
-	balance, err := repository.GetBalance(c, clientID)
+	balance, err := repository.GetBalance(c.Context(), clientID)
 	if err != nil {
 		if errors.Is(err, errs.ErrAccountNotFound) {
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
+			return c.Status(http.StatusNotFound).SendString(err.Error())
+
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return c.Status(http.StatusInternalServerError).SendString(err.Error())
 	}
 
 	str, _ := json.Marshal(balance)
-	fmt.Fprint(w, string(str))
+	return c.Status(200).Send(str)
 }

@@ -1,16 +1,15 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/LeonardsonCC/rinha-de-backend-2024/internal/api/contracts"
 	"github.com/LeonardsonCC/rinha-de-backend-2024/internal/errs"
 	"github.com/LeonardsonCC/rinha-de-backend-2024/internal/repository"
+	"github.com/gofiber/fiber/v3"
 )
 
 var (
@@ -19,42 +18,34 @@ var (
 	ErrTypeInvalid             = errors.New("invalid type")
 )
 
-func HandleNewTransaction(w http.ResponseWriter, r *http.Request) {
-	c := context.Background()
-
-	clientID, err := strconv.Atoi(r.PathValue("id"))
+func HandleNewTransaction(c fiber.Ctx) error {
+	clientID, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
-		http.Error(w, errs.ErrAccountNotFound.Error(), http.StatusNotFound)
-		return
+		return c.Status(http.StatusNotFound).SendString(errs.ErrAccountNotFound.Error())
 	}
 
 	var tt contracts.Transaction
-	if err := json.NewDecoder(r.Body).Decode(&tt); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	if err := c.Bind().Body(&tt); err != nil {
+		return c.Status(http.StatusBadGateway).SendString(err.Error())
 	}
 
 	if err := validateTx(tt); err != nil {
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
-		return
+		return c.Status(http.StatusUnprocessableEntity).SendString(err.Error())
 	}
 
-	tx, err := repository.AddTransaction(c, clientID, []rune(tt.Type)[0], tt.Value, tt.Description)
+	tx, err := repository.AddTransaction(c.Context(), clientID, []rune(tt.Type)[0], tt.Value, tt.Description)
 	if err != nil {
 		if errors.Is(err, errs.ErrInsufficientLimit) {
-			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
-			return
+			return c.Status(http.StatusUnprocessableEntity).SendString(err.Error())
 		}
 		if errors.Is(err, errs.ErrAccountNotFound) {
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
+			return c.Status(http.StatusNotFound).SendString(err.Error())
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return c.Status(http.StatusInternalServerError).SendString(err.Error())
 	}
 
 	str, _ := json.Marshal(tx)
-	fmt.Fprint(w, string(str))
+	return c.Status(200).Send(str)
 }
 
 func validateTx(tt contracts.Transaction) error {
