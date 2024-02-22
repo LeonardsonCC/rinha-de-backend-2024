@@ -12,3 +12,6 @@ Teste de carga:
 ## v1.3 - Eu sou burro
 Agora usando 2 instância como deveria desde o começo :)
 ![image](https://github.com/LeonardsonCC/rinha-de-backend-2024/assets/21212048/3b956e03-6c50-4986-9665-7222bb36dec0)
+
+## v1.3 - Apenas melhorando profiling
+![image](https://github.com/LeonardsonCC/rinha-de-backend-2024/assets/21212048/f7e82eb2-58a6-40d1-949d-2fcdd656b279)
