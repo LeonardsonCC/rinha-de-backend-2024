@@ -16,40 +16,45 @@ func AddTransaction(c context.Context, clientID int, txType rune, v int, d strin
 	tx, _ := db.Begin(c)
 	defer tx.Rollback(c)
 
-	var limit, balance int
-	clientBefore := tx.QueryRow(c, "SELECT limite, saldo FROM clientes WHERE id = $1 FOR NO KEY UPDATE", clientID)
-
-	err := clientBefore.Scan(&limit, &balance)
-	if err != nil {
-		return nil, err
-	}
-
-	var newBalance int
+	value := v
 	if txType == 'd' {
-		newBalance = balance - v
-	} else {
-		newBalance = balance + v
-	}
-
-	if newBalance < (limit * -1) {
-		return nil, errs.ErrInsufficientLimit
+		value = v * (-1)
 	}
 
 	b := new(pgx.Batch)
 
 	b.Queue("INSERT INTO transacoes(cliente_id, tipo, valor, descricao) VALUES ($1, $2, $3, $4)", clientID, string(txType), v, d)
-	b.Queue("UPDATE clientes SET saldo=$1 WHERE id=$2", newBalance, clientID)
+	b.Queue("UPDATE clientes SET saldo=(saldo+$1) WHERE id=$2 RETURNING saldo, limite", value, clientID)
 
 	bResult := tx.SendBatch(c, b)
-	err = bResult.Close()
+	_, err := bResult.Exec()
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert and update client: %v", err)
 	}
 
+	var newBalance, limit int
+	balanceResult, err := bResult.Query()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get returning: %v", err)
+	}
+
+	for balanceResult.Next() {
+		if err := balanceResult.Scan(&newBalance, &limit); err != nil {
+			return nil, fmt.Errorf("failed to updated: %v", err)
+		}
+	}
+
+	balanceResult.Close()
+
+	if newBalance < limit*-1 {
+		return nil, errs.ErrInsufficientLimit
+	}
+
+	bResult.Close()
 	_ = tx.Commit(c)
 
 	return &contracts.TransactionSuccess{
 		Limit:   int(limit),
 		Balance: int(newBalance),
-	}, err
+	}, nil
 }

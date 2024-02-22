@@ -18,6 +18,8 @@ CREATE UNLOGGED TABLE IF NOT EXISTS transacoes(
     realizada_em TIMESTAMP DEFAULT current_timestamp
 );
 
+CREATE INDEX realizada_em_transacoes_ix ON transacoes (cliente_id, realizada_em DESC);
+
 DO $$
 BEGIN
   INSERT INTO clientes (nome, limite)
