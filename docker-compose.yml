@@ -7,8 +7,8 @@ services:
     ports:
       - "8888:8888"
     depends_on:
-        db:
-          condition: service_healthy
+      db:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -46,7 +46,7 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/script.sql
       - ./postgresql.conf:/docker-entrypoint-initdb.d/postgresql.conf
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -59,7 +59,7 @@ services:
           # de memória. A distribuição feita aqui é apenas
           # um exemplo – distribua como quiser.
           cpus: "1.0"
-          memory: "300MB"
+          memory: "200MB"
 
 # O uso do modo `bridge` deve ser adequado à carga que será usada no teste.
 # A edição anterior se beneficiou do modo host pois o volume de requisições
