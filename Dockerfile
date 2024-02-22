@@ -11,7 +11,7 @@ RUN go mod download
 
 COPY . .
 
-RUN GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o ./app ./cmd/api
+RUN GOOS=linux GOARCH=amd64 go build -pgo=auto -ldflags="-w -s" -o ./app ./cmd/api
 
 
 # try use scratch
