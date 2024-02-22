@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/goccy/go-json"
 
@@ -15,8 +14,7 @@ import (
 )
 
 func HandleGetBalance(w http.ResponseWriter, r *http.Request) {
-	c, cancel := context.WithTimeout(context.Background(), time.Duration(5*time.Second))
-	defer cancel()
+	c := context.Background()
 
 	clientID, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
