@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/goccy/go-json"
 
 	"github.com/LeonardsonCC/rinha-de-backend-2024/internal/api/contracts"
 	"github.com/LeonardsonCC/rinha-de-backend-2024/internal/errs"
 	"github.com/LeonardsonCC/rinha-de-backend-2024/internal/repository"
+	"github.com/LeonardsonCC/rinha-de-backend-2024/internal/worker"
 )
 
 var (
@@ -34,13 +36,16 @@ func HandleNewTransaction(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	tt.ClientID = clientID
+	// to keep sorted when request balance
+	tt.CreatedAt = time.Now()
 
 	if err := validateTx(tt); err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 
-	tx, err := repository.AddTransaction(c, clientID, []rune(tt.Type)[0], tt.Value, tt.Description)
+	tx, err := repository.AddTransaction(c, tt)
 	if err != nil {
 		if errors.Is(err, errs.ErrInsufficientLimit) {
 			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
@@ -53,6 +58,7 @@ func HandleNewTransaction(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	worker.AddTransactionToAdd(tt)
 
 	str, _ := json.Marshal(tx)
 	fmt.Fprint(w, string(str))

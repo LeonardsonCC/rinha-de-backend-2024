@@ -9,27 +9,19 @@ import (
 	"github.com/LeonardsonCC/rinha-de-backend-2024/internal/repository/db"
 )
 
-func AddTransaction(c context.Context, clientID int, txType rune, v int, d string) (*contracts.TransactionSuccess, error) {
+func AddTransaction(c context.Context, t contracts.Transaction) (*contracts.TransactionSuccess, error) {
 	db, _ := db.GetConnection()
 
 	tx, _ := db.Begin(c)
 	defer tx.Rollback(c)
 
-	value := v
-	if txType == 'd' {
-		value = v * (-1)
-	}
-
-	_, err := tx.Exec(c, "INSERT INTO transacoes(cliente_id, tipo, valor, descricao) VALUES ($1, $2, $3, $4)", clientID, string(txType), v, d)
-	if err != nil {
-		return nil, fmt.Errorf("failed to insert and update client: %v", err)
+	value := t.Value
+	if []rune(t.Type)[0] == 'd' {
+		value = t.Value * (-1)
 	}
 
 	var newBalance, limit int
-	balanceResult := tx.QueryRow(c, "UPDATE clientes SET saldo=(saldo+$1) WHERE id=$2 RETURNING saldo, limite", value, clientID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get returning: %v", err)
-	}
+	balanceResult := tx.QueryRow(c, "UPDATE clientes SET saldo=(saldo+$1) WHERE id=$2 RETURNING saldo, limite", value, t.ClientID)
 
 	if err := balanceResult.Scan(&newBalance, &limit); err != nil {
 		return nil, fmt.Errorf("failed to updated: %v", err)
@@ -45,4 +37,15 @@ func AddTransaction(c context.Context, clientID int, txType rune, v int, d strin
 		Limit:   int(limit),
 		Balance: int(newBalance),
 	}, nil
+}
+
+func AddSuccessTransaction(c context.Context, t contracts.Transaction) error {
+	db, _ := db.GetConnection()
+
+	_, err := db.Exec(c, "INSERT INTO transacoes(cliente_id, tipo, valor, descricao) VALUES ($1, $2, $3, $4)", t.ClientID, t.Type, t.Value, t.Description)
+	if err != nil {
+		return fmt.Errorf("failed to insert and update client: %v", err)
+	}
+
+	return nil
 }
