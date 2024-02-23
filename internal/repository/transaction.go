@@ -12,7 +12,10 @@ import (
 func AddTransaction(c context.Context, t contracts.Transaction) (*contracts.TransactionSuccess, error) {
 	db, _ := db.GetConnection()
 
-	tx, _ := db.Begin(c)
+	conn, _ := db.Acquire(c)
+	defer conn.Release()
+
+	tx, _ := conn.Begin(c)
 	defer tx.Rollback(c)
 
 	value := t.Value
@@ -42,7 +45,10 @@ func AddTransaction(c context.Context, t contracts.Transaction) (*contracts.Tran
 func AddSuccessTransaction(c context.Context, t contracts.Transaction) error {
 	db, _ := db.GetConnection()
 
-	_, err := db.Exec(c, "INSERT INTO transacoes(cliente_id, tipo, valor, descricao) VALUES ($1, $2, $3, $4)", t.ClientID, t.Type, t.Value, t.Description)
+	conn, _ := db.Acquire(c)
+	defer conn.Release()
+
+	_, err := conn.Exec(c, "INSERT INTO transacoes(cliente_id, tipo, valor, descricao) VALUES ($1, $2, $3, $4)", t.ClientID, t.Type, t.Value, t.Description)
 	if err != nil {
 		return fmt.Errorf("failed to insert and update client: %v", err)
 	}

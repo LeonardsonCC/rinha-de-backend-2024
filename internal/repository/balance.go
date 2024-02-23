@@ -14,12 +14,15 @@ import (
 func GetBalance(c context.Context, clientID int) (*contracts.Balance, error) {
 	db, _ := db.GetConnection()
 
+	conn, _ := db.Acquire(c)
+	defer conn.Release()
+
 	b := new(pgx.Batch)
 
 	b.Queue("SELECT c.saldo, c.limite FROM clientes c WHERE id = $1", clientID)
 	b.Queue("SELECT t.valor, t.tipo, t.descricao, t.realizada_em FROM transacoes t WHERE cliente_id=$1 ORDER BY realizada_em DESC LIMIT 10", clientID)
 
-	results := db.SendBatch(c, b)
+	results := conn.SendBatch(c, b)
 
 	balance := &contracts.Balance{
 		Balance: contracts.BalanceData{
