@@ -15,3 +15,8 @@ Agora usando 2 instância como deveria desde o começo :)
 
 ## v1.3 - Apenas melhorando profiling
 ![image](https://github.com/LeonardsonCC/rinha-de-backend-2024/assets/21212048/f7e82eb2-58a6-40d1-949d-2fcdd656b279)
+
+## v1.4 - Mais fácil dar rollback que um select antes
+Aparentemente fazer o update com returning dá melhor performance que fazer o select antes pra verificar o limite
+![image](https://github.com/LeonardsonCC/rinha-de-backend-2024/assets/21212048/c763fcf0-36e6-483b-a665-3f1a4f378705)
+
